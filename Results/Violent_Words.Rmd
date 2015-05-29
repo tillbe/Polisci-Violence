@@ -1,0 +1,55 @@
+---
+title: "Violent words in news articles"
+output: html_document
+---
+
+Here, we visualize and analyze the percentage of violent words occurring in different types of news articles. Our hypothesis is that articles about presidential debates show a similar percentage to articles about violent events such as the Syrian War and Hurricane Sandy, but higher ratios than more neutral articles covering the California Drought or the Nobel Peace Prize. 
+
+The plot below shows the percentage for each individual article, grouped by type:
+
+```{r, echo = FALSE,message=FALSE}
+# loading necessary libraries
+library(mongolite)
+library(ggplot2)
+```
+
+```{r, echo = FALSE,message=FALSE, results='hide'}
+# getting data out of mongo data base
+
+# articles covering comparison topics
+c = mongo(collection = "articles", db = "politics")
+df1 = c$find('{}','{"violent_ratio": 1, "topic": 1}')
+names(df1)[2] = "article"
+
+# articles about presidental debates
+c = mongo(collection = "debates", db = "politics")
+df2 = c$find('{}','{"violent_ratio": 1, "debate": 1}')
+# df2$debate = paste0("debate_",df2$debate)
+df2$debate = "Debates"
+names(df2)[2] = "article"
+
+# articles covering comparison topics
+c = mongo(collection = "brown", db = "politics")
+df3 = c$find('{"category": "news"}','{"violent_ratio": 1}')
+df3$article = "Brown Corpus"
+
+# combine the dataframes into one
+df = rbind(df1, df2, df3)
+df$article = as.factor(df$article)
+# reorder factors
+df$article = factor(df$article, levels = c("Debates", "Hurricane Sandy", "Syrian War","Drought", "Nobel Peace Prize", "Brown Corpus"))
+```
+
+
+```{r,echo=FALSE, fig.width=12, fig.height=6}
+gp = ggplot(df, aes(x = 1, y = violent_ratio)) + 
+  geom_point(size = 3, 
+             position = position_jitter(width = .1)) 
+gp + ggtitle("Percentage of violent words across different types of news articles") + 
+  geom_errorbar(stat = "hline", yintercept = "mean",
+               aes(ymax=..y..,ymin=..y..),
+               width = 0.5, col = "black") +
+  facet_grid(~article) +
+  ylab("Percentage of violent words") +
+scale_x_continuous(breaks=NULL, name="")
+```
