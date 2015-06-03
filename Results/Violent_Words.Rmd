@@ -24,20 +24,22 @@ names(df1)[2] = "article"
 # articles about presidental debates
 c = mongo(collection = "debates", db = "politics")
 df2 = c$find('{}','{"violent_ratio": 1, "debate": 1}')
-# df2$debate = paste0("debate_",df2$debate)
-df2$debate = "Debates"
+df2$debate = paste0("Debate ",df2$debate)
+#df2$debate = "Debates"
 names(df2)[2] = "article"
 
 # articles covering comparison topics
-c = mongo(collection = "brown", db = "politics")
-df3 = c$find('{"category": "news"}','{"violent_ratio": 1}')
-df3$article = "Brown Corpus"
+#c = mongo(collection = "brown", db = "politics")
+#df3 = c$find('{"category": "news"}','{"violent_ratio": 1}')
+#df3$article = "Brown Corpus"
 
 # combine the dataframes into one
-df = rbind(df1, df2, df3)
+df = rbind(df1, df2)
 df$article = as.factor(df$article)
 # reorder factors
-df$article = factor(df$article, levels = c("Debates", "Hurricane Sandy", "Syrian War","Drought", "Nobel Peace Prize", "Brown Corpus"))
+#df$article = factor(df$article, levels = c("Debates", "Hurricane Sandy", "Syrian War","Drought", "Nobel Peace Prize"))
+df$article = factor(df$article, levels = c("Debate 1","Debate 2", "Debate 3", "Hurricane Sandy", "Syrian War","Drought", "Nobel Peace Prize"))
+
 ```
 
 
