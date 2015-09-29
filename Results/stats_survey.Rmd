@@ -1,0 +1,32 @@
+---
+title: "stats_survey"
+output: html_document
+---
+```{r, echo = FALSE,message=FALSE}
+
+# loading necessary libraries
+library(readxl)
+library(ggplot2)
+library(pander)
+library(tidyr)
+
+library(dplyr)
+library(knitr)
+```
+`r opts_chunk$set(echo=FALSE)`
+
+```{r, echo=FALSE}
+setwd("~/Documents/Programming/Polisci-Violence/Results")
+survey = read_excel("Debate_Metaphor_Final11.29.xlsx")
+#detach("package:reshape")
+
+survey = survey %>%
+  gather(condition, value, StrongV:ControlV) %>%
+  filter(value == 1) %>%
+  dplyr::select(-value)
+```
+```{r}
+levels(survey$Q1) = c(0,1)
+survey$c2 = factor(survey$condition, levels=c("ControlV", "WeakV", "StrongV"))
+summary(glm(Q1~c2, survey, family="binomial"))
+```

@@ -1,0 +1,170 @@
+---
+title: "Visualizing the survey data"
+output:
+  html_document: default
+  word_document:
+    reference_docx: apa_styles.docx
+---
+
+```{r, echo = FALSE,message=FALSE}
+
+# loading necessary libraries
+library(readxl)
+library(ggplot2)
+library(pander)
+library(tidyr)
+library(dplyr)
+library(knitr)
+```
+`r opts_chunk$set(echo=FALSE)`
+
+```{r, echo=FALSE}
+setwd("~/Documents/Programming/Polisci-Violence/Results")
+survey = read_excel("Debate_Metaphor_Final11.29.xlsx")
+# detach("package:reshape")
+
+survey = survey %>%
+  gather(condition, value, StrongV:ControlV) %>%
+  filter(value == 1) %>%
+  select(-value)
+levels(survey$condition) = c("Strong Violence","Weak Violence","No Violence")
+```
+Here is an overview of the questions:
+```{r, echo=FALSE}
+txt ='
+Q1 "Who won last night’s debate"
+Q2 "How confident are you about this?"
+Q3 "According to the polls, how much of a lead did the Candidate (you selected) have after the debate?"
+Q4 "Who receives more votes on election day?"
+Q5 "How confident are you about this?"
+Q6 "How many votes does the winner receive (than the loser)?"
+Q7 "What do you think Candidate A’s political affiliation is?"
+Q9 "Who would you vote for?"
+'
+questions = read.delim(textConnection(txt), sep = " ", header = FALSE) 
+names(questions) = c("code", "text")
+pander(questions, justify = c('center', 'left'), split.cells = c("10%", "90%"))
+```
+
+## Who won the debate?
+
+Let's start with Question 1 and 2, who the winner of the debate was:
+
+
+```{r}
+x=survey %>% 
+  group_by(condition, Q1) %>% 
+  summarise (n = n()) %>%
+  mutate(freq = n / sum(n)) %>%
+  select(-n) 
+panderOptions("round",3)
+y = x %>% 
+  spread(condition, freq) %>%
+  select(Candidate = Q1,`No Violence`, `Weak Violence`, `Strong Violence`) 
+pander(y)
+```
+
+The more violent language, the clearer the winner. In control condition, basically 50/50.
+
+```{r, echo=FALSE, message=FALSE, fig.width=10, fig.height=3}
+library(likert)
+library(reshape)
+
+x = survey[survey$Q1 == 1,] %>% select(Q2)
+x$Q2 = as.factor(x$Q2)
+x = as.data.frame(x)
+lik = likert(x, grouping = survey[survey$Q1 == 1,]$condition)
+plot(lik, legend.position = "right") +  theme(text=element_text(size=16, family="Arial")) + ggtitle("Confidence Rating for Q1") 
+```
+
+Also more confidence in violent conditions.
+
+We can also try to weigh the votes (see Fausey&Matlock paper). TO BE DONE
+
+## Lead of selected candidate at polls
+
+```{r, echo=FALSE, message=FALSE, fig.width=10, fig.height=3}
+library(likert)
+library(reshape)
+
+x =  survey[survey$Q1 == 1,] %>% select(3) 
+x$Q3 = as.factor(x$Q3)
+x = as.data.frame(x)
+lik = likert(x, grouping = survey[survey$Q1 == 1,]$condition)
+plot(lik, legend.position = "right") +  theme(text=element_text(size=16, family="Arial"))
+```
+
+## Election: Who wins the election by how many votes?
+
+Same result as with debate (to be expected). More violence leads to more Candidate 1 selections.
+
+```{r}
+x=survey %>% 
+  group_by(condition, Q4) %>% 
+  summarise (n = n()) %>%
+  mutate(freq = n / sum(n)) %>%
+  select(-n) 
+panderOptions("round",3)
+y = x %>% 
+  spread(condition, freq) %>%
+  select(Candidate = Q4, `No Violence`, `Weak Violence`, `Strong Violence`) 
+pander(y)
+```
+
+Confidence?
+
+```{r, echo=FALSE, message=FALSE, fig.width=10, fig.height=3}
+x = select(survey, Q5)
+x$Q5 = as.factor(x$Q5)
+x = as.data.frame(x)
+lik = likert(x, grouping = survey$condition)
+plot(lik, legend.position = "right") +  theme(text=element_text(size=16, family="Arial"))
+```
+
+Margin of victory:
+
+```{r, echo=FALSE, message=FALSE, fig.width=10, fig.height=3}
+x = select(survey, Q6)
+x$Q6 = as.factor(x$Q6)
+x = as.data.frame(x)
+lik = likert(x, grouping = survey$condition)
+plot(lik, legend.position = "right")+  theme(text=element_text(size=16, family="Arial"))
+```
+
+## Political Affiliation
+
+What political affiliation does Candidate A have:
+
+```{r, echo=FALSE, message=FALSE, fig.width=10, fig.height=3}
+x = select(survey, Q7)
+x$Q7 = as.factor(x$Q7)
+x = as.data.frame(x)
+lik = likert(x, grouping = survey$condition)
+plot(lik, legend.position = "right") +  theme(text=element_text(size=16, family="Arial"))
+```
+
+
+## Who would you vote for
+
+```{r}
+x=survey %>% 
+  group_by(condition, Q9) %>% 
+  summarise (n = n()) %>%
+  mutate(freq = n / sum(n)) %>%
+  select(-n) 
+panderOptions("round",3)
+y = x %>% 
+  spread(condition, freq) %>%
+  select(Candidate = Q9, `No Violence`, `Weak Violence`, `Strong Violence`) 
+pander(y)
+
+
+```
+```{r, echo=FALSE, message=FALSE, fig.width=10, fig.height=3}
+x = select(survey, Q9)
+x$Q9 = as.factor(x$Q9)
+x = as.data.frame(x)
+lik = likert(x, grouping = survey$condition)
+plot(lik, legend.position = "right") + ggtitle("Who would you vote for?") 
+```
+

@@ -11,6 +11,10 @@ The plot below shows the percentage for each individual article, grouped by type
 # loading necessary libraries
 library(mongolite)
 library(ggplot2)
+library(pander)
+library(dplyr)
+library(broom)
+library(stargazer)
 ```
 
 ```{r, echo = FALSE,message=FALSE, results='hide'}
@@ -18,12 +22,12 @@ library(ggplot2)
 
 # articles covering comparison topics
 c = mongo(collection = "articles", db = "politics")
-df1 = c$find('{}','{"violent_ratio": 1, "topic": 1}')
+df1 = c$find('{}','{"violent_ratio": 1, "topic": 1, "candidate_ratio": 1}')
 names(df1)[2] = "article"
 
 # articles about presidental debates
-c = mongo(collection = "debates", db = "politics")
-df2 = c$find('{}','{"violent_ratio": 1, "debate": 1}')
+c = mongo(collection = "debates2", db = "politics")
+df2 = c$find('{}','{"violent_ratio": 1, "debate": 1, "candidate_ratio": 1}')
 df2$debate = paste0("Debate ",df2$debate)
 #df2$debate = "Debates"
 names(df2)[2] = "article"
@@ -37,21 +41,59 @@ names(df2)[2] = "article"
 df = rbind(df1, df2)
 df$article = as.factor(df$article)
 # reorder factors
-#df$article = factor(df$article, levels = c("Debates", "Hurricane Sandy", "Syrian War","Drought", "Nobel Peace Prize"))
-df$article = factor(df$article, levels = c("Debate 1","Debate 2", "Debate 3", "Hurricane Sandy", "Syrian War","Drought", "Nobel Peace Prize"))
+#df$article = factor(df$article, levels = c("Debates", "Hurricane Sandy", "Syrian War","Drought", "Nobel Peace Prize", "General Election"))
+df$article = factor(df$article, levels = c("Debate 1","Debate 2", "Debate 3", "Hurricane Sandy", "Syrian War","Drought", "Nobel Peace Prize", "General Election"))
+df$violent_ratio = df$violent_ratio * 100
+df$candidate_ratio = df$candidate_ratio * 100
 
+df = filter(df, article != "General Election")
+droplevels(df)
 ```
 
 
 ```{r,echo=FALSE, fig.width=12, fig.height=6}
 gp = ggplot(df, aes(x = 1, y = violent_ratio)) + 
   geom_point(size = 3, 
-             position = position_jitter(width = .1)) 
-gp + ggtitle("Percentage of violent words across different types of news articles") + 
+             position = position_jitter(width = .1, height = 0)) 
+gp  + 
   geom_errorbar(stat = "hline", yintercept = "mean",
                aes(ymax=..y..,ymin=..y..),
                width = 0.5, col = "black") +
-  facet_grid(~article) +
+  facet_grid(~article ) +
   ylab("Percentage of violent words") +
-scale_x_continuous(breaks=NULL, name="")
+scale_x_continuous(breaks=NULL, name="") # + ggtitle("Percentage of violent words across different types of news articles")
+
+```
+
+```{r, echo = FALSE,message=FALSE}
+
+bla = df %>%
+  group_by(article) %>%
+  summarise(m = mean(violent_ratio), sd = sd(violent_ratio), n = n())
+panderOptions("round", 3)
+pander(bla)
+```
+
+
+Let's do some stats: Linear Regression with Debate 1 as control level:
+
+```{r, echo = FALSE}
+df$group = NA
+# df[df$article %in% c("Debate 1","Debate 2", "Debate 3"),]$group = "Debate"
+# df[df$article %in% c("Drought", "Nobel Peace Prize"),]$group = "Violent"
+# df[df$article %in% c("Hurricane Sandy", "Syrian War"),]$group = "Non-Violent"
+# df %>% group_by(group) %>% summarise(m=mean(violent_ratio))
+
+mod = lm(violent_ratio ~ article, df)
+panderOptions("round", 5)
+tidied = tidy(mod)
+tidied$term[1] = "articleDebate 1 (Intercept)"
+tidied$term = unlist(lapply(tidied$term, function(x) substring(x, 8)))
+
+pander(tidied, split.table = Inf)
+```
+
+```{r, echo=FALSE, results='asis'}
+library(stargazer)
+stargazer(mod, type = 'html')
 ```

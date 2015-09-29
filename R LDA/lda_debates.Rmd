@@ -1,0 +1,75 @@
+---
+title: "LDA on debates"
+output: html_document
+---
+
+```{r, echo = FALSE,message=FALSE}
+# loading necessary libraries
+library(mongolite)
+library(ggplot2)
+library(pander)
+library(dplyr)
+library(broom)
+library(stargazer)
+library(topicmodels)
+library(RPushbullet)
+library(tm)
+library(parallel)
+```
+
+
+
+```{r, echo = FALSE,message=FALSE, results='hide'}
+# getting data out of mongo data base
+
+# articles covering comparison topics
+c = mongo(collection = "articles", db = "politics")
+df1 = c$find('{}','{"text": 1, "topic": 1}')
+names(df1)[2] = "article"
+
+# articles about presidental debates
+c = mongo(collection = "debates2", db = "politics")
+df2 = c$find('{}','{"text": 1, "debate": 1}')
+
+df2$debate = paste0("Debate ",df2$debate)
+#df2$debate = "Debates"
+names(df2)[2] = "article"
+
+# articles covering comparison topics
+#c = mongo(collection = "brown", db = "politics")
+#df3 = c$find('{"category": "news"}','{"violent_ratio": 1}')
+#df3$article = "Brown Corpus"
+
+# combine the dataframes into one
+df = rbind(df1, df2)
+df$article = as.factor(df$article)
+# reorder factors
+#df$article = factor(df$article, levels = c("Debates", "Hurricane Sandy", "Syrian War","Drought", "Nobel Peace Prize", "General Election"))
+df$article = factor(df$article, levels = c("Debate 1","Debate 2", "Debate 3", "Hurricane Sandy", "Syrian War","Drought", "Nobel Peace Prize", "General Election"))
+
+df = filter(df, article != "General Election")
+df = droplevels(df)
+```
+
+```{r}
+text = df$text
+
+
+corpus = Corpus(VectorSource(text))
+pbPost("note", "DTM", "Running...")
+
+# create document term matrix. adjust parameters as needed.  
+dtm = DocumentTermMatrix(corpus,
+                         control = list(stemming = TRUE,  # SnowballC has to be installed
+                                        stopwords = TRUE, 
+                                        minWordLength = 3,
+                                        removeNumbers = TRUE, 
+                                        removePunctuation = TRUE))
+
+saveRDS(dtm, "dtm.rds")
+
+dtm <- dtm[ , which(table(dtm$j) >= 5)]
+
+saveRDS(dtm, "dtm_minimized.rds")
+
+```
