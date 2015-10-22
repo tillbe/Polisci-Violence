@@ -19,7 +19,7 @@ library(knitr)
 `r opts_chunk$set(echo=FALSE)`
 
 ```{r, echo=FALSE}
-setwd("~/Documents/Programming/Polisci-Violence/Results")
+#setwd("~/Documents/Programming/Polisci-Violence/Results")
 survey = read_excel("Debate_Metaphor_Final11.29.xlsx")
 # detach("package:reshape")
 
